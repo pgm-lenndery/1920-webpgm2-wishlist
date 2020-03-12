@@ -1,11 +1,18 @@
 import '../styles/main.css';
 var mapboxgl = require('mapbox-gl/dist/mapbox-gl.js');
 
+
 const MAPBOX_TOKEN = 'pk.eyJ1IjoiZi1yb2dlcnMiLCJhIjoiY2p2MHFiem1iMTJhODN5bzRvenMwOWc0NSJ9.hAcN6R50XcaUwh0NI98Ifw';
 const MAPBOX_CONFIG = {
   container: 'app',
   style: 'mapbox://styles/mapbox/streets-v11'
 };
+
+function getCurrentPosition(options = {}) {
+  return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, options);
+  });
+}
 
 const app = {
   init() {
@@ -22,18 +29,17 @@ const app = {
         this.addMarker(coords);
       });
   },
-  getCurrentLocation() {
-    return new Promise( (resolve, reject) => {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition((position) => {
-          const long = position.coords.longitude;
-          const lat = position.coords.latitude;
-          resolve([long, lat]);
-        });
-      } else {
-        reject('Old browser')
+  async getCurrentLocation() {
+        try {
+          const { coords } = await getCurrentPosition();
+          const { latitude, longitude } = coords;
+
+          return([longitude, latitude]);
+          // Handle coordinates
+      } catch (error) {
+          // Handle error
+          console.error(error);
       }
-    });
   },
   addMarker(coordinates) {
     const marker = document.createElement('div');
