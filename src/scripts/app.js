@@ -1,89 +1,188 @@
-import '../styles/main.css';
-import * as CONFIG from './config';
-var mapboxgl = require('mapbox-gl/dist/mapbox-gl.js');
+import '../styles/main.min.css';
+import {AIRTABlE_KEY} from './config';
 
-const OPENCAGE_API = `https://api.opencagedata.com/geocode/v1/json?pretty=1&key=${CONFIG.OPENCAGEAPIKEY}&q=`;
+const appID = 'app8rag1axCaXV6TD'
+const apiURI = `https://api.airtable.com/v0/${appID}/wishlist`;
 
-const MAPBOX_CONFIG = {
-  container: 'app',
-  center: [3.7174243,51.0543422],
-  style: 'mapbox://styles/mapbox/streets-v11',
-  zoom: 10
-};
+console.log(apiURI + `?api_key=${AIRTABlE_KEY}`);
 
-function getCurrentPosition(options = {}) {
-  return new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, options);
-  });
+const table = document.querySelector('[data-label="wishlistItems"] .table');
+const contextMenu = document.querySelector('[data-label="contextMenu"]');
+
+const wishList = {
+  initialize() {
+    this.generateContextMenu();
+    this.getAirtableData();
+    this.selectedRecordID = '';
+    
+    const addItemButton = document.querySelector('#addItem_magic');
+    addItemButton.addEventListener('click', () => {
+      this.addRecord();
+      this.addNewRecordToExistingList(this.getInputValues());
+    })
+  },
+  
+  getInputValues() {
+    return {
+      title: document.querySelector('#addItem_title').value,
+      price: document.querySelector('#addItem_price').value,
+      amount: document.querySelector('#addItem_amount').value,
+      description: document.querySelector('#addItem_amount').value,
+      url: document.querySelector('#addItem_url').value,
+      imgUrl: document.querySelector('#addItem_img_url').value,
+    }
+  },
+  
+  getAirtableData() {
+    fetch(apiURI, {
+      method: 'get',
+      headers: new Headers({
+        'Authorization': `Bearer ${AIRTABlE_KEY}`,
+        'Content-Type': 'application/json'
+      })
+    })
+    .then(response => response.json())
+    .then (data => {
+      this.generateWishlist(data);
+    });
+  },
+  
+  generateWishlist(data) {
+    console.log(data);
+    data.records.map(record => {
+      const itemData = record.fields;
+      
+      const itemUrlDomain = itemData.url.split('/')[2].replace('www.', '');
+      const div = document.createElement('div');
+      div.classList.add('tr', 'mb-3');
+      div.setAttribute('data-itemid', record.id);
+      
+      div.innerHTML = `
+        <div class="col-3 td">
+          <a href="${itemData.url}" target="_blank">${itemData.title}</a>
+        </div>
+        <div class="col-1 td">€${itemData.price.toString().replace('.',',')}</div>
+        <div class="col-5 td">${itemData.description}</div>
+        <div class="col-3 td">
+          <a href="${itemData.url}" target="_blank">Bekijk op ${itemUrlDomain}</a>
+        </div>
+      `
+      table.appendChild(div);
+    })
+  },
+  
+  generateContextMenu() {
+    // ADD ITEMS TO CONTEXTMENU
+    contextMenu.innerHTML = '';
+    const menuItem = document.createElement('div');
+    menuItem.innerHTML = 'delete item';
+    menuItem.className = 'contextMenu-item';
+    menuItem.addEventListener('click', () => {
+      this.deleteRecord(this.selectedRecordID);
+      document.querySelector(`[data-itemid="${this.selectedRecordID}"]`).remove();
+      this.generateContextMenu();
+    });
+    contextMenu.appendChild(menuItem);
+    
+    const menuItem2 = document.createElement('div');
+    menuItem2.innerHTML = 'edit item';
+    menuItem2.className = 'contextMenu-item';
+    menuItem2.addEventListener('click', () => {
+      console.log('item2 click');
+      alert('lel da werkt nog nietn mut');
+      this.generateContextMenu();
+    });
+    contextMenu.appendChild(menuItem2);
+    
+    document.body.addEventListener("contextmenu", (event) => {
+      const element = event.target.parentNode;
+      
+      event.preventDefault();
+      
+      this.selectedRecordID = element.dataset.itemid;
+      let xPos = event.clientX, yPos = event.clientY;
+
+      if (element.classList.value.includes('tr')) {       
+        contextMenu.style.top = yPos + 'px';
+        contextMenu.style.left = xPos + 'px';
+        contextMenu.classList.remove('hidden');
+      } else if (element.classList.value.includes('tr') == false && element.id != 'app') {
+        contextMenu.classList.add('hidden');
+      }
+    },false);
+    
+    document.addEventListener('click', () => {
+      contextMenu.classList.add('hidden');
+    })
+  },
+  
+  addNewRecordToExistingList(input) {
+    console.log(input);
+    
+    const itemUrlDomain = input.url.split('/')[2].replace('www.', '');
+    const div = document.createElement('div');
+    div.classList.add('tr', 'mb-3');
+    // div.setAttribute('data-itemid', record.id);
+    
+    div.innerHTML = `
+      <div class="col-3 td">
+        <a href="${input.url}" target="_blank">${input.title}</a>
+      </div>
+      <div class="col-1 td">€${parseFloat(input.price).toString().replace('.',',')}</div>
+      <div class="col-5 td">€${input.description}</div>
+      <div class="col-3 td">
+        <a href="${input.url}" target="_blank">Bekijk op ${itemUrlDomain}</a>
+      </div>
+    `
+    table.appendChild(div);
+  },
+  
+  addRecord() {
+    const input = this.getInputValues();
+    console.log(this.getInputValues())
+    
+    fetch(apiURI, {
+      method: 'post',
+      headers: new Headers({
+        'Authorization': `Bearer ${AIRTABlE_KEY}`,
+        'Content-Type': 'application/json'
+      }),
+      body: JSON.stringify({
+        records: [{
+          fields: {
+            "price": parseFloat(input.price),
+            "title": input.title,
+            "amount": parseFloat(input.amount),
+            "description": input.description,
+            "url": input.url,
+            "img": [
+              {
+                "url": input.imgUrl
+              }
+            ]
+          }
+        }]
+      })
+    })
+    .then(response => response.json())
+    .then (data => {
+      console.log(data);
+    })
+  },
+  
+  deleteRecord(inputID) {
+    fetch(`${apiURI}/${inputID}`, {
+      method: 'DELETE',
+      headers: new Headers({
+        'Authorization': `Bearer ${AIRTABlE_KEY}`,
+        'Content-Type': 'application/json'
+      })
+    })
+    .then(respone => respone.text()) // or res.json()
+    .then(data => {console.log(data)});
+  }
 }
 
-const app = {
-  init() {
-    // init mapbox
-    mapboxgl.accessToken = CONFIG.MAPBOX_TOKEN;
-    this._map = new mapboxgl.Map(MAPBOX_CONFIG);
+// https://api.airtable.com/v0/app8rag1axCaXV6TD/wishlist/recd5X0aQXgisJuvH
 
-    // cache elements
-    this.cacheDOMElements();
-    this.cacheDOMEvents();
-
-    // get current location
-    this.getCurrentLocation()
-      .then(coords => {
-        // add first marker
-        this.addMarker(coords);
-        this._map.flyTo({
-          center: coords
-        })
-      });
-  },
-  async getCurrentLocation() {
-        try {
-          const { coords } = await getCurrentPosition();
-          const { latitude, longitude } = coords;
-
-          return([longitude, latitude]);
-      } catch (error) {
-          console.error(error);
-      }
-  },
-  async fetchLocationCoordinates(address) {
-    const fetch_url = OPENCAGE_API + encodeURI(address);
-    console.log(fetch_url);
-    const response = await fetch(fetch_url)
-    const data = await response.json();
-    if(data.status.code == 200 && data.results.length > 0) {
-      const {lat, lng} = data.results[0].geometry;
-      return([lng, lat]);
-    }
-    else {
-      alert('Adres niet gevonden');
-    }
-  },
-  addMarker(coordinates) {
-    const marker = document.createElement('div');
-    marker.className = 'marker';
-    
-    new mapboxgl.Marker(marker)
-      .setLngLat(coordinates)
-      .addTo(this._map);
-  },
-  cacheDOMElements() {
-    this.$app = document.querySelector('#app');
-    this.$inputAddress = document.querySelector('#address');
-    this.$buttonMagic = document.querySelector('#magic');
-  },
-  cacheDOMEvents() {
-      this.$buttonMagic.addEventListener('click', (e) => {
-        e.preventDefault();
-        const address = this.$inputAddress.value;
-        this.fetchLocationCoordinates(address)
-          .then((coords) => {
-            this.addMarker(coords);
-          })
-        
-    });
-  }
-};
-
-app.init();
+wishList.initialize();

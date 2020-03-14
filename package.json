@@ -5,7 +5,10 @@
   "description": "Code Template Web Programming 2",
   "scripts": {
     "dev": "webpack-dev-server --mode development --open",
-    "build": "webpack --mode production"
+    "build": "webpack --mode production",
+    "sass:dev": "sass --watch src/_scss/main.scss:src/styles/main.min.css --style compressed --sourcemap=none",
+    "sass:build": "sass src/_scss/main.scss:src/styles/main.min.css --style compressed --sourcemap=none",
+    "serve": "cd src && browser-sync start -s -f . --no-notify --host $LOCAL_IP --port 9000"
   },
   "repository": {
     "type": "git",

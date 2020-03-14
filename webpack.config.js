@@ -22,7 +22,7 @@ module.exports = (env, argv) => {
 
     // define the output
     output: {
-      path: path.resolve(__dirname, 'dist'),
+      path: path.resolve(__dirname, 'docs'),
       filename: 'bundle.min.js',
     },
 
@@ -86,7 +86,7 @@ module.exports = (env, argv) => {
 
     // define our development server
     devServer: {
-      port: process.env.PORT || 8080,
+      port: process.env.PORT || 8081,
       contentBase: './src',
       historyApiFallback: false,
     },
